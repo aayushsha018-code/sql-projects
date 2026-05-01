@@ -1,0 +1,208 @@
+use vendmat_analysis;
+select * from sql_vendmat_analysis limit 10;
+rename table sql_vendmat_analysis to vendmat;
+show tables;
+select * from vendmat;
+
+-- 1) What is the total number of orders in the dataset?
+select count(*) as total_orders from vendmat;
+
+-- 2) What is the total revenue generated from all orders?
+select sum(price)as total_revenue from vendmat;
+
+-- 3) What is the average rating given by customers?
+select avg(rating) from vendmat;
+select round(avg(rating),2) from vendmat;
+
+-- 4) How many unique customers are there in the dataset?
+select count(distinct employee_id) from vendmat;
+
+-- 5) What is the average order value (AOV)?
+select round(sum(price)/count(*),2) as aov from vendmat;
+
+-- 6) Which restaurant has the highest number of orders?
+select restaurant,count(*) as total_orders from vendmat 
+group by restaurant 
+order by total_orders desc ;
+
+-- 7) Which restaurant generates the highest revenue?
+select restaurant,sum(price) as total_revenue from vendmat 
+group by restaurant 
+order by total_revenue desc;
+
+-- 8) Which shift has the highest number of orders?
+select shift, count(*) as total_orders from vendmat
+group by shift
+order by total_orders desc;
+
+-- 9) Which shift generates the highest revenue?
+select shift, sum(price) as total_revenue from vendmat
+group by shift
+order by total_revenue desc;
+
+-- 10) Which tech park has the highest number of orders?
+select tech_park, count(*) as total_orders from vendmat
+group by tech_park
+order by total_orders desc;
+
+-- 11) what are the top 10 most ordered items?
+select item, count(*) as total_orders from vendmat
+group by item
+order by total_orders desc
+limit 10;
+
+-- 12) what is the top-selling item in each tech park?
+select tech_park, item, total_orders
+from (select tech_park, item, count(*) as total_orders,
+dense_rank() over(partition by tech_park order by count(*) desc) as rnk 
+from vendmat group by tech_park, item) t 
+where rnk = 1;
+
+-- 13) rank items within each tech park based on number of orders
+select tech_park, item, count(*) as total_orders,
+dense_rank() over(partition by tech_park order by count(*) desc) as rnk 
+from vendmat group by tech_park, item ;
+
+-- 14) which tech park and item combination has the highest total revenue?
+select tech_park, item, total_revenue
+from(select tech_park, item , sum(price) as total_revenue, 
+dense_rank() over(order by sum(price) desc) as best from vendmat 
+group by tech_park,item) t where best = 1;
+
+-- 15) what is the total number of orders for each item within each tech park? 
+select  distinct tech_park, item, count(*) over(partition by tech_park, item)
+from vendmat;
+-- or
+select tech_park, item, count(*)
+from vendmat
+group by tech_park, item;
+
+-- 16) what is the average price of items in each tech park?
+select tech_park,avg(price) as avg_price
+from vendmat
+group by tech_park;
+
+-- 17) what is the total revenue generated per day?
+select date, sum(price) from vendmat group by date;
+
+-- 18) which day has the highest and lowest number of orders?
+select day_name, total_orders 
+from (select dayname(`Date`) as day_name,
+count(*) as total_orders,
+dense_rank() over(order by count(*) desc) as rnk_high,
+dense_rank() over(order by count(*)) as rnk_low from vendmat
+group by dayname(`Date`)) t
+where rnk_high = 1 or rnk_low = 1;
+
+-- 19) what is the total number of orders for each day of the week?
+select dayname(date) as day_name, count(*) as total_orders
+from vendmat
+group by dayname(date)
+order by total_orders desc;
+-- or
+select distinct dayname(date) as day_name, 
+count(*) over(partition by dayname(date )) as total_orders
+from vendmat
+order by total_orders desc;
+
+-- 20) which item was most populer in each tech park?
+select item ,tech_park, total_orders
+from (select item ,tech_park, count(*) as total_orders,
+dense_rank() over( order by count(*) desc)as ranks from vendmat 
+group by item, tech_park) t where ranks = 1;
+
+-- 21) what is the revenue contribution (%) of each tech park to total revenue?
+with total as (select sum(price) as total_revenue from vendmat)
+select tech_park, sum(price) as revenue, sum(price) * 100.0 / max(total_revenue) as percentage_contribution 
+from vendmat,total
+group by tech_park;
+
+-- 22) are the most ordered items also the highest revenue generating items?
+select item, count(*) as total_orders,sum(price) as total_revenue
+from vendmat
+group by item
+order by total_orders desc;
+
+-- 23) which tech park has the lowest revenue?
+select tech_park, sum(price) as total_revenue
+from vendmat
+group by tech_park
+order by total_revenue 
+limit 1;
+
+-- 24) which item has the lowest sales (least ordered)?
+select item, count(*) as total_orders
+from vendmat
+group by item
+order by total_orders
+limit 1;
+
+-- 25) items whose revenue is above average revenue
+select item, total_revenue from (select item, sum(price) as total_revenue, 
+avg(sum(price)) over() as average_revenue from vendmat group by item)t
+where total_revenue> average_revenue;
+
+-- 26) which tech park has the lowest revenue?
+select tech_park, sum(price) as total_revenue
+from vendmat
+group by tech_park
+order by total_revenue
+limit 1;
+
+-- 27) find repeat customers (customers who ordered more than once)
+select employee_id, count(*) as total_orders
+from vendmat
+group by employee_id
+having count(*) > 1;
+
+-- 28) which customers contributed the most revenue?
+select employee_id, sum(price) as total_spent
+from vendmat
+group by employee_id
+order by total_spent desc;
+
+-- 29) what is the average order value per tech park?
+select tech_park, round(sum(price)/count(*),2) as aov
+from vendmat
+group by tech_park;
+
+-- 30) which tech park has the highest average order value (AOV)?
+select tech_park, aov
+from (select tech_park, round(sum(price) / count(*), 2) as aov,
+dense_rank() over(order by sum(price) / count(*) desc) as rnk
+from vendmat
+group by tech_park) t
+where rnk = 1;
+
+
+-- INSIGHTS:
+
+-- 1. Lunch is the peak demand period, generating the highest orders and revenue, indicating strong midday consumption patterns.
+
+-- 2. Friday shows the highest activity while Monday is significantly lower, suggesting hybrid work patterns impacting demand.
+
+-- 3. Revenue contribution is fairly balanced across tech parks, with RMZ Azure Hebbal slightly leading (~35%).
+
+-- 4. A few items (especially high-protein meals and combos) generate significantly higher revenue despite not always being the most ordered.
+
+-- 5. High-frequency items like Bread Omelette drive volume, while premium items drive revenue.
+
+-- 6. Customer behavior shows strong repeat usage, with a small group of customers contributing disproportionately to revenue.
+
+-- 7. Average order value remains consistent across tech parks, indicating uniform pricing strategy.
+
+-- 8. Demand is concentrated around a few top-performing items within each tech parkwith alter
+
+-- BUSINESS RECOMMENDATIONS:
+
+-- 1. Ensure machines are fully stocked before lunch hours to avoid missed high-demand sales.
+
+-- 2. Optimize inventory on Mondays to reduce wastage due to lower demand.
+
+-- 3. Promote high-revenue items (protein bowls, combos) to increase profitability.
+
+-- 4. Introduce targeted offers for low-performing days (e.g., Monday discounts).
+
+-- 5. Focus on retaining high-value repeat customers through loyalty programs.
+
+-- 6. Customize item availability per tech park based on local preferences.
