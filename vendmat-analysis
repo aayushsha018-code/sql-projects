@@ -167,3 +167,35 @@ dense_rank() over(order by sum(price) / count(*) desc) as rnk
 from vendmat
 group by tech_park) t
 where rnk = 1;
+
+-- INSIGHTS:
+
+-- 1. Lunch is the peak demand period, generating the highest orders and revenue, indicating strong midday consumption patterns.
+
+-- 2. Friday shows the highest activity while Monday is significantly lower, suggesting hybrid work patterns impacting demand.
+
+-- 3. Revenue contribution is fairly balanced across tech parks, with RMZ Azure Hebbal slightly leading (~35%).
+
+-- 4. A few items (especially high-protein meals and combos) generate significantly higher revenue despite not always being the most ordered.
+
+-- 5. High-frequency items like Bread Omelette drive volume, while premium items drive revenue.
+
+-- 6. Customer behavior shows strong repeat usage, with a small group of customers contributing disproportionately to revenue.
+
+-- 7. Average order value remains consistent across tech parks, indicating uniform pricing strategy.
+
+-- 8. Demand is concentrated around a few top-performing items within each tech parkwith alter
+
+-- BUSINESS RECOMMENDATIONS:
+
+-- 1. Ensure machines are fully stocked before lunch hours to avoid missed high-demand sales.
+
+-- 2. Optimize inventory on Mondays to reduce wastage due to lower demand.
+
+-- 3. Promote high-revenue items (protein bowls, combos) to increase profitability.
+
+-- 4. Introduce targeted offers for low-performing days (e.g., Monday discounts).
+
+-- 5. Focus on retaining high-value repeat customers through loyalty programs.
+
+-- 6. Customize item availability per tech park based on local preferences.
